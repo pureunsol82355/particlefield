@@ -16,7 +16,6 @@ export default function ParticleFieldVanilla() {
     let scene: THREE.Scene;
     let camera: THREE.PerspectiveCamera;
     let renderer: THREE.WebGLRenderer;
-    let particles: THREE.Points;
     let htmlRenderer: any;
     let htmlDiv: HTMLDivElement;
     let group: THREE.Group;
@@ -24,7 +23,6 @@ export default function ParticleFieldVanilla() {
     let composer: EffectComposer;
 
     const mouse = { x: 0, y: 0 };
-    const particleCount = 5000;
 
     async function init() {
       // Import html-in-canvas modules
@@ -38,7 +36,8 @@ export default function ParticleFieldVanilla() {
 
       // Create scene
       scene = new THREE.Scene();
-      scene.fog = new THREE.Fog(0x000000, 1, 10);
+      
+      // CSS 배경이 보이도록 씬의 배경을 설정하지 않습니다.
 
       // Create camera
       camera = new THREE.PerspectiveCamera(
@@ -49,8 +48,9 @@ export default function ParticleFieldVanilla() {
       );
       camera.position.z = 5;
 
-      // Create WebGL renderer
-      renderer = new THREE.WebGLRenderer({ antialias: true });
+      // Create WebGL renderer (alpha 트루를 주어 배경을 투명하게 만듦)
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setClearColor(0x000000, 0); // 캔버스 투명도 100%
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
       
@@ -69,40 +69,6 @@ export default function ParticleFieldVanilla() {
       
       console.log('HTML Renderer connected, canvas has layoutsubtree:', 
         renderer.domElement.hasAttribute('layoutsubtree'));
-
-      // Create particles
-      const geometry = new THREE.BufferGeometry();
-      const positions = new Float32Array(particleCount * 3);
-
-      for (let i = 0; i < particleCount * 3; i += 3) {
-        positions[i] = (Math.random() - 0.5) * 10;
-        positions[i + 1] = (Math.random() - 0.5) * 10;
-        positions[i + 2] = (Math.random() - 0.5) * 10;
-      }
-
-      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-      // Add colors for each particle (gradient from cyan to magenta)
-      const colors = new Float32Array(particleCount * 3);
-      for (let i = 0; i < particleCount * 3; i += 3) {
-        const t = Math.random();
-        colors[i] = 0.2 + t * 0.8;     // R: cyan to magenta
-        colors[i + 1] = 0.4 + t * 0.4; // G: moderate green
-        colors[i + 2] = 1.0;            // B: full blue
-      }
-      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-      const material = new THREE.PointsMaterial({
-        size: 0.015,
-        transparent: true,
-        opacity: 0.9,
-        blending: THREE.AdditiveBlending,
-        vertexColors: true,
-        sizeAttenuation: true,
-      });
-
-      particles = new THREE.Points(geometry, material);
-      scene.add(particles);
 
       // Create HTML element - match the examples (no box-sizing!)
       htmlDiv = document.createElement('div');
@@ -139,7 +105,19 @@ export default function ParticleFieldVanilla() {
           color: white;
           font-size: 13px;
           box-sizing: border-box;
+          margin-bottom: 12px;
         ">
+        <a href="https://docs.google.com/presentation/d/1iP79ODqjkUfsDrvgMkr0NE0FsPAJYypren1u36DEMYU/edit?usp=sharing" target="_blank" style="
+          display: block;
+          text-align: center;
+          color: #ffbb00;
+          text-decoration: none;
+          font-size: 14px;
+          padding: 8px;
+          border: 1px solid #ffbb00;
+          border-radius: 5px;
+          transition: 0.2s;
+        ">🔗 프레젠테이션 보기</a>
       `;
       
       // CRITICAL: Add HTML element INSIDE the canvas, not to body
@@ -250,57 +228,16 @@ export default function ParticleFieldVanilla() {
       // Animation loop
       function animate() {
         animationFrameId = requestAnimationFrame(animate);
-
-        // Animate particles
-        const positions = particles.geometry.attributes.position.array as Float32Array;
-        const colors = particles.geometry.attributes.color.array as Float32Array;
-        const time = Date.now() * 0.001;
-
-        for (let i = 0; i < particleCount * 3; i += 3) {
-          const x = positions[i];
-          const y = positions[i + 1];
-          const z = positions[i + 2];
-
-          // Wave motion with rotation
-          positions[i + 1] += Math.sin(time + x) * 0.01;
-          positions[i + 2] += Math.cos(time + y) * 0.01;
-
-          // Spiral motion
-          const angle = time * 0.5;
-          const radius = Math.sqrt(x * x + z * z);
-          if (radius > 0.1) {
-            const newAngle = Math.atan2(z, x) + 0.001;
-            positions[i] = Math.cos(newAngle) * radius;
-            positions[i + 2] = Math.sin(newAngle) * radius;
-          }
-
-          // Mouse interaction with stronger effect
-          const dx = mouse.x * 5 - x;
-          const dy = mouse.y * 5 - y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < 2.5) {
-            const force = (2.5 - distance) / 2.5;
-            positions[i] += dx * 0.02 * force;
-            positions[i + 1] += dy * 0.02 * force;
-            
-            // Color pulse on interaction
-            colors[i] = Math.min(1.0, colors[i] + 0.1 * force);
-            colors[i + 1] = Math.min(1.0, colors[i + 1] + 0.1 * force);
-          } else {
-            // Fade back to original colors
-            const t = (i / 3) / particleCount;
-            colors[i] = colors[i] * 0.95 + (0.2 + t * 0.8) * 0.05;
-            colors[i + 1] = colors[i + 1] * 0.95 + (0.4 + t * 0.4) * 0.05;
-          }
+        
+        // 물방울 무늬(Polka Dot)를 흔들리게(Jiggle) 하는 효과 추가
+        if (containerRef.current) {
+          const time = Date.now() * 0.005; // 속도 조절
+          const jiggleX = Math.sin(time) * 5; // X축 흔들림 폭
+          const jiggleY = Math.cos(time * 0.8) * 5; // Y축 흔들림 폭
+          // 첫 번째 배경(물방울 패턴)의 위치만 변경하고, 초콜릿 이미지는 center를 유지
+          containerRef.current.style.backgroundPosition = `${jiggleX}px ${jiggleY}px, center`;
         }
 
-        particles.geometry.attributes.position.needsUpdate = true;
-        particles.geometry.attributes.color.needsUpdate = true;
-        
-        // Rotate particle system slowly
-        particles.rotation.y += 0.0005;
-        
         // Update controls
         controls.update();
 
@@ -349,9 +286,9 @@ export default function ParticleFieldVanilla() {
           containerRef.current?.removeChild(renderer.domElement);
         }
         
-        if (particles) {
-          particles.geometry.dispose();
-          (particles.material as THREE.Material).dispose();
+        // 배경 텍스처 메모리 해제
+        if (scene && scene.background instanceof THREE.Texture) {
+          scene.background.dispose();
         }
         
         if (group) {
@@ -378,7 +315,11 @@ export default function ParticleFieldVanilla() {
         position: 'fixed',
         top: 0,
         left: 0,
-        background: '#000',
+        // 물방울 무늬와 초콜릿 이미지를 겹쳐서 표시
+        backgroundImage: 'radial-gradient(circle at 32px 32px, #ffbb00 10px, transparent 11px), url("/chocolate.jpg")',
+        backgroundSize: '64px 64px, cover',
+        backgroundPosition: '0 0, center',
+        backgroundColor: '#4a3018', // 이미지가 없을 때의 기본 갈색 배경
       }}
     />
   );
