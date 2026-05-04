@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML in Canvas Test</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        #html_element {
+            width: 400px;
+            height: 400px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #4488ff;
+            border-radius: 8px;
+            color: white;
+            font-family: system-ui;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas" layoutsubtree="true">
+        <div id="html_element">
+            <h2 style="margin: 0 0 10px 0; color: #4488ff;">HTML in Canvas! 🎉</h2>
+            <p style="margin: 0 0 15px 0;">This HTML is rendered directly on the canvas.</p>
+            <button id="testButton" style="
+                background: #4488ff;
+                border: none;
+                color: white;
+                padding: 10px 20px;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 14px;
+                width: 100%;
+                margin-bottom: 10px;
+            ">Click Counter: 0</button>
+            <input type="text" placeholder="Type something..." style="
+                width: 100%;
+                padding: 10px;
+                border: 1px solid #4488ff;
+                border-radius: 5px;
+                background: rgba(255, 255, 255, 0.1);
+                color: white;
+                box-sizing: border-box;
+            ">
+        </div>
+    </canvas>
+
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.158.0';
+        import { OrbitControls } from 'https://cdn.skypack.dev/three@0.158.0/examples/jsm/controls/OrbitControls.js';
+        
+        // Import from the installed package
+        import { installHtmlInCanvasPolyfill } from '/node_modules/three-html-render/src/htmlInCanvasPolyfill.ts';
+        import { ThreeHTMLRenderer } from '/node_modules/three-html-render/src/threeHTMLRenderer.ts';
+        
+        installHtmlInCanvasPolyfill();
+        
+        const canvas = document.getElementById('canvas');
+        const htmlElement = document.getElementById('html_element');
+        
+        // Scene setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 5;
+        
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        
+        const gl = renderer.getContext();
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        
+        // HTML Renderer
+        const htmlRenderer = new ThreeHTMLRenderer();
+        htmlRenderer.connect(canvas, camera, renderer);
+        
+        // Explicitly set dimensions (like the example does)
+        htmlElement.style.width = '400px';
+        htmlElement.style.height = '400px';
+        
+        // Create plane
+        const planeGeometry = new THREE.PlaneGeometry(5, 5);
+        const planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        scene.add(plane);
+        
+        // Register HTML with plane
+        htmlRenderer.addObject(htmlElement, plane);
+        
+        // OrbitControls
+        const controls = new OrbitControls(camera, canvas);
+        controls.enableDamping = true;
+        
+        // Button click handler
+        let clickCount = 0;
+        const button = document.getElementById('testButton');
+        button.addEventListener('click', () => {
+            clickCount++;
+            button.textContent = `Click Counter: ${clickCount}`;
+        });
+        
+        // Disable controls on HTML hover
+        htmlElement.addEventListener('pointerenter', () => {
+            controls.enabled = false;
+        });
+        htmlElement.addEventListener('pointerleave', () => {
+            controls.enabled = true;
+        });
+        
+        // Resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            htmlRenderer.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+        
+        console.log('Test page loaded');
+        console.log('Element dimensions:', htmlElement.offsetWidth, 'x', htmlElement.offsetHeight);
+    </script>
+</body>
+</html>
