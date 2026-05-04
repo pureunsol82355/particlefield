@@ -101,7 +101,19 @@ export default function ParticleFieldVanilla() {
           border: 1px solid #ffbb00;
           border-radius: 5px;
           transition: 0.2s;
+          margin-bottom: 8px;
         ">🔗 프레젠테이션 보기</a>
+        <a href="https://drive.google.com/file/d/1NnMRllVQwBFlKyN09gllSVtle9yk07d9/view?usp=sharing" target="_blank" style="
+          display: block;
+          text-align: center;
+          color: #ffffff;
+          text-decoration: none;
+          font-size: 14px;
+          padding: 8px;
+          border: 1px solid #ffffff;
+          border-radius: 5px;
+          transition: 0.2s;
+        ">🎬 Final Video</a>
       `;
 
       // CRITICAL: Add HTML element INSIDE the canvas, not to body
