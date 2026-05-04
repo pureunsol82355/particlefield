@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { BloomEffect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
 
 export default function ParticleFieldVanilla() {
@@ -21,6 +22,9 @@ export default function ParticleFieldVanilla() {
     let group: THREE.Group;
     let controls: OrbitControls;
     let composer: EffectComposer;
+    let chocolateModel: THREE.Group | null = null;
+    let ambientLight: THREE.AmbientLight;
+    let dirLight: THREE.DirectionalLight;
 
     const mouse = { x: 0, y: 0 };
 
@@ -176,6 +180,29 @@ export default function ParticleFieldVanilla() {
       controls.minDistance = 2;
       controls.maxDistance = 20;
 
+      // Add lights so GLB materials render correctly
+      ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      scene.add(ambientLight);
+      dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+      dirLight.position.set(5, 8, 5);
+      scene.add(dirLight);
+
+      // Load chocolate GLB model
+      const gltfLoader = new GLTFLoader();
+      gltfLoader.load(
+        '/chocolate.glb',
+        (gltf) => {
+          chocolateModel = gltf.scene;
+          // Position the model below the HTML plane (which is at y=0) so they don't overlap
+          chocolateModel.position.set(0, -1.8, 0);
+          scene.add(chocolateModel);
+        },
+        undefined,
+        (err) => {
+          console.warn('Failed to load chocolate.glb:', err);
+        }
+      );
+
       // Setup postprocessing with enhanced bloom
       composer = new EffectComposer(renderer);
       composer.addPass(new RenderPass(scene, camera));
@@ -284,6 +311,35 @@ export default function ParticleFieldVanilla() {
 
         if (group) {
           scene.remove(group);
+        }
+
+        if (ambientLight) {
+          scene.remove(ambientLight);
+        }
+
+        if (dirLight) {
+          scene.remove(dirLight);
+          dirLight.dispose();
+        }
+
+        // Dispose GLB model geometries and materials
+        if (chocolateModel) {
+          scene.remove(chocolateModel);
+          chocolateModel.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.geometry?.dispose();
+              if (Array.isArray(child.material)) {
+                child.material.forEach((m) => {
+                  (m as THREE.MeshStandardMaterial).map?.dispose();
+                  m.dispose();
+                });
+              } else if (child.material) {
+                (child.material as THREE.MeshStandardMaterial).map?.dispose();
+                child.material.dispose();
+              }
+            }
+          });
+          chocolateModel = null;
         }
       };
     }
