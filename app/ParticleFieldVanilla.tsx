@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { BloomEffect, EffectComposer, EffectPass, RenderPass } from 'postprocessing';
 
 export default function ParticleFieldVanilla() {
@@ -21,6 +22,9 @@ export default function ParticleFieldVanilla() {
     let group: THREE.Group;
     let controls: OrbitControls;
     let composer: EffectComposer;
+
+    // GLB model root object
+    let glbRoot: THREE.Object3D | null = null;
 
     const mouse = { x: 0, y: 0 };
 
@@ -62,7 +66,10 @@ export default function ParticleFieldVanilla() {
       htmlRenderer = new ThreeHTMLRenderer();
       htmlRenderer.connect(renderer.domElement, camera, renderer);
 
-      console.log('HTML Renderer connected, canvas has layoutsubtree:', renderer.domElement.hasAttribute('layoutsubtree'));
+      console.log(
+        'HTML Renderer connected, canvas has layoutsubtree:',
+        renderer.domElement.hasAttribute('layoutsubtree')
+      );
 
       // Create HTML element - match the examples (no box-sizing!)
       htmlDiv = document.createElement('div');
@@ -139,7 +146,10 @@ export default function ParticleFieldVanilla() {
       const planeGeometry = new THREE.PlaneGeometry(2, 2);
 
       // Explicitly set bounding box to match plane size
-      planeGeometry.boundingBox = new THREE.Box3(new THREE.Vector3(-1, -1, 0), new THREE.Vector3(1, 1, 0));
+      planeGeometry.boundingBox = new THREE.Box3(
+        new THREE.Vector3(-1, -1, 0),
+        new THREE.Vector3(1, 1, 0)
+      );
 
       // Create a basic material - the polyfill will replace it with the HTML texture
       const planeMaterial = new THREE.MeshBasicMaterial({
@@ -175,6 +185,29 @@ export default function ParticleFieldVanilla() {
       controls.dampingFactor = 0.05;
       controls.minDistance = 2;
       controls.maxDistance = 20;
+
+      // ---- GLB MODEL LOADING ----
+      // 1) Put your model at: public/models/model.glb
+      // 2) Then it is available at URL: /models/model.glb
+      const gltfLoader = new GLTFLoader();
+      gltfLoader.load(
+        '/models/model.glb',
+        (gltf) => {
+          glbRoot = gltf.scene;
+
+          // 기본 위치/크기 (필요에 따라 조절)
+          glbRoot.position.set(0, -0.6, 0.8);
+          glbRoot.scale.set(1, 1, 1);
+
+          scene.add(glbRoot);
+
+          console.log('GLB loaded:', glbRoot);
+        },
+        undefined,
+        (err) => {
+          console.error('GLB load error:', err);
+        }
+      );
 
       // Setup postprocessing with enhanced bloom
       composer = new EffectComposer(renderer);
@@ -229,6 +262,14 @@ export default function ParticleFieldVanilla() {
           containerRef.current.style.backgroundPosition = `${jiggleX}px ${jiggleY}px, center`;
         }
 
+        // GLB 모델 자동 움직임(부유 + 회전)
+        const t = performance.now() * 0.001;
+        if (glbRoot) {
+          glbRoot.rotation.y = t * 0.6;
+          glbRoot.position.y = -0.6 + Math.sin(t * 1.5) * 0.15;
+          glbRoot.position.x = Math.sin(t * 0.7) * 0.25;
+        }
+
         // Update controls
         controls.update();
 
@@ -270,6 +311,26 @@ export default function ParticleFieldVanilla() {
 
         if (htmlDiv && htmlDiv.parentNode) {
           htmlDiv.parentNode.removeChild(htmlDiv);
+        }
+
+        // GLB 리소스 정리(지오메트리/머티리얼 dispose)
+        if (glbRoot && scene) {
+          glbRoot.traverse((obj) => {
+            if ((obj as THREE.Mesh).isMesh) {
+              const mesh = obj as THREE.Mesh;
+              mesh.geometry?.dispose?.();
+
+              const mat = mesh.material as any;
+              if (Array.isArray(mat)) {
+                mat.forEach((m) => m?.dispose?.());
+              } else {
+                mat?.dispose?.();
+              }
+            }
+          });
+
+          scene.remove(glbRoot);
+          glbRoot = null;
         }
 
         if (renderer) {
