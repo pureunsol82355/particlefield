@@ -36,16 +36,11 @@ export default function ParticleFieldVanilla() {
 
       // Create scene
       scene = new THREE.Scene();
-      
+
       // CSS 배경이 보이도록 씬의 배경을 설정하지 않습니다.
 
       // Create camera
-      camera = new THREE.PerspectiveCamera(
-        75,
-        window.innerWidth / window.innerHeight,
-        0.1,
-        1000
-      );
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
       camera.position.z = 5;
 
       // Create WebGL renderer (alpha 트루를 주어 배경을 투명하게 만듦)
@@ -53,22 +48,21 @@ export default function ParticleFieldVanilla() {
       renderer.setClearColor(0x000000, 0); // 캔버스 투명도 100%
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
-      
+
       // CRITICAL: Add layoutsubtree attribute BEFORE appending
       renderer.domElement.setAttribute('layoutsubtree', '');
-      
+
       // Set FLIP_Y for HTML textures
       const gl = renderer.getContext() as WebGLRenderingContext;
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-      
+
       containerRef.current!.appendChild(renderer.domElement);
 
       // Create HTML renderer and connect AFTER canvas is in DOM
       htmlRenderer = new ThreeHTMLRenderer();
       htmlRenderer.connect(renderer.domElement, camera, renderer);
-      
-      console.log('HTML Renderer connected, canvas has layoutsubtree:', 
-        renderer.domElement.hasAttribute('layoutsubtree'));
+
+      console.log('HTML Renderer connected, canvas has layoutsubtree:', renderer.domElement.hasAttribute('layoutsubtree'));
 
       // Create HTML element - match the examples (no box-sizing!)
       htmlDiv = document.createElement('div');
@@ -85,8 +79,6 @@ export default function ParticleFieldVanilla() {
         <h1 style="margin:0 0 10px 0; font-size:20px; font-weight:700; color:#ffd500; line-height:1;">
           Chocolate Time Sequare
         </h1>
-        <h2 style="margin: 0 0 8px 0; color: #4488ff; font-size: 16px;">HTML in Canvas! 🎉</h2>
-        <p style="margin: 0 0 12px 0; font-size: 13px; line-height: 1.3;">This HTML is rendered on canvas.</p>
         <button id="htmlButton" style="
           background: #4488ff;
           border: none;
@@ -122,10 +114,10 @@ export default function ParticleFieldVanilla() {
           transition: 0.2s;
         ">🔗 프레젠테이션 보기</a>
       `;
-      
+
       // CRITICAL: Add HTML element INSIDE the canvas, not to body
       renderer.domElement.appendChild(htmlDiv);
-      
+
       // Set explicit dimensions in JavaScript (like the official example does)
       htmlDiv.style.width = '400px';
       htmlDiv.style.height = '400px';
@@ -140,35 +132,32 @@ export default function ParticleFieldVanilla() {
 
       // Create group and add HTML plane
       group = new THREE.Group();
-      
+
       // Create plane geometry - match the example ratio
       // HTML element is 400x400, use a 2x2 plane like the example
       const planeGeometry = new THREE.PlaneGeometry(2, 2);
-      
+
       // Explicitly set bounding box to match plane size
-      planeGeometry.boundingBox = new THREE.Box3(
-        new THREE.Vector3(-1, -1, 0),
-        new THREE.Vector3(1, 1, 0)
-      );
-      
+      planeGeometry.boundingBox = new THREE.Box3(new THREE.Vector3(-1, -1, 0), new THREE.Vector3(1, 1, 0));
+
       // Create a basic material - the polyfill will replace it with the HTML texture
       const planeMaterial = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
       });
       const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-      
+
       group.add(plane);
       group.position.set(0, 0, 0); // Centered at origin
       scene.add(group);
-      
+
       console.log('Group position:', group.position);
       console.log('Plane position:', plane.position);
       console.log('Camera position:', camera.position);
-      
+
       // CRITICAL: Register the HTML element with the mesh using ThreeHTMLRenderer
       htmlRenderer.addObject(htmlDiv, plane);
-      
+
       console.log('Plane mesh created:');
       console.log('  - HTML element registered with renderer');
       console.log('  - Element dimensions:', htmlDiv.offsetWidth, 'x', htmlDiv.offsetHeight);
@@ -179,26 +168,24 @@ export default function ParticleFieldVanilla() {
       console.log('  - Pixel ratio:', window.devicePixelRatio);
       console.log('  - Material type:', planeMaterial.type);
 
-
-
       // Add OrbitControls
       controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
       controls.minDistance = 2;
       controls.maxDistance = 20;
-      
+
       // Setup postprocessing with enhanced bloom
       composer = new EffectComposer(renderer);
       composer.addPass(new RenderPass(scene, camera));
-      
+
       const bloomEffect = new BloomEffect({
         intensity: 2.0,
         luminanceThreshold: 0.15,
         luminanceSmoothing: 0.9,
       });
       composer.addPass(new EffectPass(camera, bloomEffect));
-      
+
       // Disable controls when interacting with HTML elements
       htmlDiv.addEventListener('pointerenter', () => {
         controls.enabled = false;
@@ -220,7 +207,7 @@ export default function ParticleFieldVanilla() {
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
         composer.setSize(window.innerWidth, window.innerHeight);
-        
+
         // Update HTML overlay renderer on resize
         if (htmlRenderer && htmlRenderer.overlayRenderer) {
           htmlRenderer.overlayRenderer.update();
@@ -231,7 +218,7 @@ export default function ParticleFieldVanilla() {
       // Animation loop
       function animate() {
         animationFrameId = requestAnimationFrame(animate);
-        
+
         // 물방울 무늬(Polka Dot)를 흔들리게(Jiggle) 하는 효과 추가
         if (containerRef.current) {
           const time = Date.now() * 0.005; // 속도 조절
@@ -267,33 +254,33 @@ export default function ParticleFieldVanilla() {
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('resize', handleResize);
         cancelAnimationFrame(animationFrameId);
-        
+
         if (controls) {
           controls.dispose();
         }
-        
+
         if (composer) {
           composer.dispose();
         }
-        
+
         if (htmlRenderer) {
           htmlRenderer.disconnect();
         }
-        
+
         if (htmlDiv && htmlDiv.parentNode) {
           htmlDiv.parentNode.removeChild(htmlDiv);
         }
-        
+
         if (renderer) {
           renderer.dispose();
           containerRef.current?.removeChild(renderer.domElement);
         }
-        
+
         // 배경 텍스처 메모리 해제
         if (scene && scene.background instanceof THREE.Texture) {
           scene.background.dispose();
         }
-        
+
         if (group) {
           scene.remove(group);
         }
@@ -319,7 +306,8 @@ export default function ParticleFieldVanilla() {
         top: 0,
         left: 0,
         // 물방울 무늬와 초콜릿 이미지를 겹쳐서 표시
-        backgroundImage: 'radial-gradient(circle at 32px 32px, #ffbb00 10px, transparent 11px), url("/chocolate.jpg")',
+        backgroundImage:
+          'radial-gradient(circle at 32px 32px, #ffbb00 10px, transparent 11px), url("/chocolate.jpg")',
         backgroundSize: '64px 64px, cover',
         backgroundPosition: '0 0, center',
         backgroundColor: '#4a3018', // 이미지가 없을 때의 기본 갈색 배경
