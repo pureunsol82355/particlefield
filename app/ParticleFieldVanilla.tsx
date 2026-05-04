@@ -85,6 +85,8 @@ export default function ParticleFieldVanilla() {
       htmlDiv.innerHTML = `
         <h1 style="margin:0 0 10px 0; font-size:20px; font-weight:700; color:#ffd500; line-height:1;">
           Chocolate Time Sequare
+          My dream with Chocolate:)
+          Click the link !
         </h1>
         <button id="htmlButton" style="
           background: #4488ff;
