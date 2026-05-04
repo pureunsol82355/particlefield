@@ -58,7 +58,8 @@ export default function ParticleFieldVanilla() {
 
       // Set FLIP_Y for HTML textures
       const gl = renderer.getContext() as WebGLRenderingContext;
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      // NOTE: If HTML appears upside-down, this flag can cause double-flipping depending on the HTML texture pipeline.
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
 
       containerRef.current!.appendChild(renderer.domElement);
 
