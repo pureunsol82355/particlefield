@@ -22,56 +22,40 @@ export default function ParticleFieldVanilla() {
     let group: THREE.Group;
     let controls: OrbitControls;
     let composer: EffectComposer;
-
-    // GLB model root object
     let glbRoot: THREE.Object3D | null = null;
 
     const mouse = { x: 0, y: 0 };
 
     async function init() {
-      // Import html-in-canvas modules
       const [{ installHtmlInCanvasPolyfill }, { ThreeHTMLRenderer }] = await Promise.all([
         import('three-html-render/polyfill'),
         import('three-html-render/renderer')
       ]);
 
-      // Install polyfill
       installHtmlInCanvasPolyfill();
 
-      // Create scene
       scene = new THREE.Scene();
 
-      // CSS 배경이 보이도록 씬의 배경을 설정하지 않습니다.
-
-      // Create camera
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
       camera.position.z = 5;
 
-      // Create WebGL renderer (alpha 트루를 주어 배경을 투명하게 만듦)
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setClearColor(0x000000, 0); // 캔버스 투명도 100%
+      renderer.setClearColor(0x000000, 0); 
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
 
-      // CRITICAL: Add layoutsubtree attribute BEFORE appending
       renderer.domElement.setAttribute('layoutsubtree', '');
 
-      // Set FLIP_Y for HTML textures
       const gl = renderer.getContext() as WebGLRenderingContext;
+      // Note: We keep this, but the UV flip below ensures the "reading direction" matches the interaction
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
       containerRef.current!.appendChild(renderer.domElement);
 
-      // Create HTML renderer and connect AFTER canvas is in DOM
       htmlRenderer = new ThreeHTMLRenderer();
       htmlRenderer.connect(renderer.domElement, camera, renderer);
 
-      console.log(
-        'HTML Renderer connected, canvas has layoutsubtree:',
-        renderer.domElement.hasAttribute('layoutsubtree')
-      );
-
-      // Create HTML element - match the examples (no box-sizing!)
+      // --- HTML UI Setup ---
       htmlDiv = document.createElement('div');
       htmlDiv.style.cssText = `
         width: 400px;
@@ -83,9 +67,9 @@ export default function ParticleFieldVanilla() {
         overflow: visible;
       `;
       htmlDiv.innerHTML = `
-        <h1 style="margin:0 0 10px 0; font-size:20px; font-weight:700; color:#ffd500; line-height:1;">
-          Chocolate Time Sequare
-          My dream with Chocolate:)
+        <h1 style="margin:0 0 10px 0; font-size:20px; font-weight:700; color:#ffd500; line-height:1.2;">
+          Chocolate Time Square<br/>
+          My dream with Chocolate:)<br/>
           Click the link !
         </h1>
         <button id="htmlButton" style="
@@ -125,14 +109,10 @@ export default function ParticleFieldVanilla() {
         ">🎬 Final Video</a>
       `;
 
-      // CRITICAL: Add HTML element INSIDE the canvas, not to body
       renderer.domElement.appendChild(htmlDiv);
-
-      // Set explicit dimensions in JavaScript (like the official example does)
       htmlDiv.style.width = '400px';
       htmlDiv.style.height = '400px';
 
-      // Add button click handler
       let clickCount = 0;
       const button = htmlDiv.querySelector('#htmlButton') as HTMLButtonElement;
       button.addEventListener('click', () => {
@@ -140,20 +120,23 @@ export default function ParticleFieldVanilla() {
         button.textContent = `Click Counter: ${clickCount}`;
       });
 
-      // Create group and add HTML plane
       group = new THREE.Group();
 
-      // Create plane geometry - match the example ratio
-      // HTML element is 400x400, use a 2x2 plane like the example
+      // --- CRITICAL FIX: FLIP UV COORDINATES ---
       const planeGeometry = new THREE.PlaneGeometry(2, 2);
+      const uvAttribute = planeGeometry.attributes.uv;
+      for (let i = 0; i < uvAttribute.count; i++) {
+          let v = uvAttribute.getY(i);
+          uvAttribute.setY(i, 1 - v); // Flip the texture mapping vertically
+      }
+      uvAttribute.needsUpdate = true;
+      // -----------------------------------------
 
-      // Explicitly set bounding box to match plane size
       planeGeometry.boundingBox = new THREE.Box3(
         new THREE.Vector3(-1, -1, 0),
         new THREE.Vector3(1, 1, 0)
       );
 
-      // Create a basic material - the polyfill will replace it with the HTML texture
       const planeMaterial = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         side: THREE.DoubleSide,
@@ -161,59 +144,23 @@ export default function ParticleFieldVanilla() {
       const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 
       group.add(plane);
-      group.position.set(0, 0, 0); // Centered at origin
       scene.add(group);
 
-      console.log('Group position:', group.position);
-      console.log('Plane position:', plane.position);
-      console.log('Camera position:', camera.position);
-
-      // CRITICAL: Register the HTML element with the mesh using ThreeHTMLRenderer
       htmlRenderer.addObject(htmlDiv, plane);
 
-      console.log('Plane mesh created:');
-      console.log('  - HTML element registered with renderer');
-      console.log('  - Element dimensions:', htmlDiv.offsetWidth, 'x', htmlDiv.offsetHeight);
-      console.log('  - Plane geometry size:', planeGeometry.parameters.width, 'x', planeGeometry.parameters.height);
-      console.log('  - Canvas size:', renderer.domElement.width, 'x', renderer.domElement.height);
-      console.log('  - Canvas client size:', renderer.domElement.clientWidth, 'x', renderer.domElement.clientHeight);
-      console.log('  - Window size:', window.innerWidth, 'x', window.innerHeight);
-      console.log('  - Pixel ratio:', window.devicePixelRatio);
-      console.log('  - Material type:', planeMaterial.type);
-
-      // Add OrbitControls
       controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-      controls.minDistance = 2;
-      controls.maxDistance = 20;
 
-      // ---- GLB MODEL LOADING ----
-      // public/chocolate.glb -> URL: /chocolate.glb
       const gltfLoader = new GLTFLoader();
-      gltfLoader.load(
-        '/chocolate.glb',
-        (gltf) => {
-          glbRoot = gltf.scene;
+      gltfLoader.load('/chocolate.glb', (gltf) => {
+        glbRoot = gltf.scene;
+        glbRoot.position.set(2.2, -1.0, -1.8);
+        scene.add(glbRoot);
+      });
 
-          // GLB 기본 위치/크기 (HTML/박스와 겹치지 않도록 옆+뒤로 배치)
-          glbRoot.position.set(2.2, -1.0, -1.8);
-          glbRoot.scale.set(1, 1, 1);
-
-          scene.add(glbRoot);
-
-          console.log('GLB loaded:', glbRoot);
-        },
-        undefined,
-        (err) => {
-          console.error('GLB load error:', err);
-        }
-      );
-
-      // Setup postprocessing with enhanced bloom
       composer = new EffectComposer(renderer);
       composer.addPass(new RenderPass(scene, camera));
-
       const bloomEffect = new BloomEffect({
         intensity: 2.0,
         luminanceThreshold: 0.15,
@@ -221,203 +168,78 @@ export default function ParticleFieldVanilla() {
       });
       composer.addPass(new EffectPass(camera, bloomEffect));
 
-      // Disable controls when interacting with HTML elements
-      htmlDiv.addEventListener('pointerenter', () => {
-        controls.enabled = false;
-      });
-      htmlDiv.addEventListener('pointerleave', () => {
-        controls.enabled = true;
-      });
+      htmlDiv.addEventListener('pointerenter', () => { controls.enabled = false; });
+      htmlDiv.addEventListener('pointerleave', () => { controls.enabled = true; });
 
-      // Mouse move handler
-      const handleMouseMove = (event: MouseEvent) => {
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-      };
-      window.addEventListener('mousemove', handleMouseMove);
-
-      // Handle window resize
       const handleResize = () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
         composer.setSize(window.innerWidth, window.innerHeight);
-
-        // Update HTML overlay renderer on resize
-        if (htmlRenderer && htmlRenderer.overlayRenderer) {
-          htmlRenderer.overlayRenderer.update();
-        }
+        if (htmlRenderer?.overlayRenderer) htmlRenderer.overlayRenderer.update();
       };
       window.addEventListener('resize', handleResize);
 
-      // Animation loop
       function animate() {
         animationFrameId = requestAnimationFrame(animate);
 
-        // 물방울 무늬(Polka Dot)를 흔들리게(Jiggle) 하는 효과 추가
         if (containerRef.current) {
-          const time = Date.now() * 0.005; // 속도 조절
-          const jiggleX = Math.sin(time) * 5; // X축 흔들림 폭
-          const jiggleY = Math.cos(time * 0.8) * 5; // Y축 흔들림 폭
-          // 첫 번째 배경(물방울 패턴)의 위치만 변경하고, 초콜릿 이미지는 center를 유지
+          const time = Date.now() * 0.005;
+          const jiggleX = Math.sin(time) * 5;
+          const jiggleY = Math.cos(time * 0.8) * 5;
           containerRef.current.style.backgroundPosition = `${jiggleX}px ${jiggleY}px, center`;
         }
 
-        // GLB 모델 자동 움직임 (2: 원/타원 궤도처럼 빙글빙글 + 넓게)
-        const t = performance.now() * 0.001;
         if (glbRoot) {
-          // 회전 속도는 살짝 낮춤(너무 어지럽지 않게)
+          const t = performance.now() * 0.001;
           glbRoot.rotation.y = t * 0.35;
-
-          // HTML 박스(원점 부근)과 겹치지 않도록 base를 옆+뒤로 두고,
-          // 타원 궤도로 넓게 움직이게 함
-          const baseX = 2.2;
-          const baseY = -1.0;
-          const baseZ = -1.8;
-
-          const orbitX = Math.cos(t * 0.45) * 1.8;
-          const orbitZ = Math.sin(t * 0.45) * 1.2;
-          const bobY = Math.sin(t * 1.3) * 0.35;
-
-          glbRoot.position.x = baseX + orbitX;
-          glbRoot.position.z = baseZ + orbitZ;
-          glbRoot.position.y = baseY + bobY;
+          glbRoot.position.x = 2.2 + Math.cos(t * 0.45) * 1.8;
+          glbRoot.position.z = -1.8 + Math.sin(t * 0.45) * 1.2;
+          glbRoot.position.y = -1.0 + Math.sin(t * 1.3) * 0.35;
         }
 
-        // Update controls
         controls.update();
-
-        // Update HTML renderer - pass the scene so it can find meshes with .element
         if (htmlRenderer) {
-          try {
-            htmlRenderer.update(scene);
-          } catch (e: any) {
-            // Log errors to see what's happening
-            if (e.message && !e.message.includes('no snapshot')) {
-              console.error('HTML renderer error:', e.message);
-            }
-          }
+          try { htmlRenderer.update(scene); } catch (e) {}
         }
-
-        // Render scene with postprocessing
         composer.render();
       }
 
       animate();
 
-      // Store cleanup function
       cleanupRef.current = () => {
-        window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('resize', handleResize);
         cancelAnimationFrame(animationFrameId);
-
-        if (controls) {
-          controls.dispose();
-        }
-
-        if (composer) {
-          composer.dispose();
-        }
-
-        if (htmlRenderer) {
-          htmlRenderer.disconnect();
-        }
-
-        if (htmlDiv && htmlDiv.parentNode) {
-          htmlDiv.parentNode.removeChild(htmlDiv);
-        }
-
-        // GLB 리소스 정리(지오메트리/머티리얼 dispose)
-        if (glbRoot && scene) {
-          glbRoot.traverse((obj) => {
-            if ((obj as THREE.Mesh).isMesh) {
-              const mesh = obj as THREE.Mesh;
-              mesh.geometry?.dispose?.();
-
-              const mat = mesh.material as any;
-              if (Array.isArray(mat)) {
-                mat.forEach((m) => m?.dispose?.());
-              } else {
-                mat?.dispose?.();
-              }
-            }
-          });
-
-          scene.remove(glbRoot);
-          glbRoot = null;
-        }
-
-        if (renderer) {
-          renderer.dispose();
-          containerRef.current?.removeChild(renderer.domElement);
-        }
-
-        // 배경 텍스처 메모리 해제
-        if (scene && scene.background instanceof THREE.Texture) {
-          scene.background.dispose();
-        }
-
-        if (group) {
-          scene.remove(group);
-        }
+        controls?.dispose();
+        composer?.dispose();
+        htmlRenderer?.disconnect();
+        if (htmlDiv?.parentNode) htmlDiv.parentNode.removeChild(htmlDiv);
+        renderer?.dispose();
       };
     }
 
     init().catch(console.error);
-
-    return () => {
-      if (cleanupRef.current) {
-        cleanupRef.current();
-      }
-    };
+    return () => cleanupRef.current?.();
   }, []);
 
   return (
     <>
-      {/* 화면 상단 큰 타이틀 (박스 밖 / 캔버스 위 오버레이) */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 18,
-          left: 0,
-          width: '100%',
-          zIndex: 50,
-          display: 'flex',
-          justifyContent: 'center',
-          pointerEvents: 'none',
-        }}
-      >
-        <div
-          style={{
-            fontFamily: 'system-ui',
-            fontWeight: 900,
-            fontSize: 'clamp(28px, 5vw, 64px)',
-            letterSpacing: '0.02em',
-            color: '#ffd500',
-            textShadow: '0 2px 12px rgba(0,0,0,0.55)',
-            lineHeight: 1,
-            padding: '0 16px',
-            textAlign: 'center',
-          }}
-        >
-          Chocolate Times Sequare
+      <div style={{
+          position: 'fixed', top: 18, left: 0, width: '100%', zIndex: 50,
+          display: 'flex', justifyContent: 'center', pointerEvents: 'none',
+        }}>
+        <div style={{
+            fontFamily: 'system-ui', fontWeight: 900, fontSize: 'clamp(28px, 5vw, 64px)',
+            color: '#ffd500', textShadow: '0 2px 12px rgba(0,0,0,0.55)', textAlign: 'center',
+          }}>
+          Chocolate Times Square
         </div>
       </div>
 
-      <div
-        ref={containerRef}
-        style={{
-          width: '100vw',
-          height: '100vh',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          // 물방울 무늬와 초콜릿 이미지를 겹쳐서 표시
-          backgroundImage:
-            'radial-gradient(circle at 32px 32px, #ffbb00 10px, transparent 11px), url("/chocolate.jpg")',
-          backgroundSize: '64px 64px, cover',
-          backgroundPosition: '0 0, center',
-          backgroundColor: '#4a3018', // 이미지가 없을 때의 기본 갈색 배경
+      <div ref={containerRef} style={{
+          width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0,
+          backgroundImage: 'radial-gradient(circle at 32px 32px, #ffbb00 10px, transparent 11px), url("/chocolate.jpg")',
+          backgroundSize: '64px 64px, cover', backgroundPosition: '0 0, center', backgroundColor: '#4a3018',
         }}
       />
     </>
