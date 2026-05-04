@@ -58,10 +58,7 @@ export default function ParticleFieldVanilla() {
 
       // Set FLIP_Y for HTML textures
       const gl = renderer.getContext() as WebGLRenderingContext;
-      // NOTE: `three-html-render` 파이프라인에서 내부적으로 뒤집힘 처리를 하는 경우가 있어,
-      // 여기서 UNPACK_FLIP_Y_WEBGL을 건드리면 이중 뒤집힘으로 텍스트가 상하 반전될 수 있습니다.
-      // 따라서 기본값(false)로 두고, 명시적으로 설정하지 않습니다.
-      // gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
       containerRef.current!.appendChild(renderer.domElement);
 
