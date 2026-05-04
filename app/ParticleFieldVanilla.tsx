@@ -187,11 +187,10 @@ export default function ParticleFieldVanilla() {
       controls.maxDistance = 20;
 
       // ---- GLB MODEL LOADING ----
-      // 1) Put your model at: public/models/model.glb
-      // 2) Then it is available at URL: /models/model.glb
+      // public/chocolate.glb -> URL: /chocolate.glb
       const gltfLoader = new GLTFLoader();
       gltfLoader.load(
-        '/models/model.glb',
+        '/chocolate.glb',
         (gltf) => {
           glbRoot = gltf.scene;
 
