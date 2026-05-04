@@ -82,6 +82,9 @@ export default function ParticleFieldVanilla() {
         overflow: visible;
       `;
       htmlDiv.innerHTML = `
+        <h1 style="margin:0 0 10px 0; font-size:20px; font-weight:700; color:#ffd500; line-height:1;">
+          Chocolate Time Sequare
+        </h1>
         <h2 style="margin: 0 0 8px 0; color: #4488ff; font-size: 16px;">HTML in Canvas! 🎉</h2>
         <p style="margin: 0 0 12px 0; font-size: 13px; line-height: 1.3;">This HTML is rendered on canvas.</p>
         <button id="htmlButton" style="
@@ -315,11 +318,11 @@ export default function ParticleFieldVanilla() {
         position: 'fixed',
         top: 0,
         left: 0,
-        // 물방울 무늬와 초콜릿 이미지를 겹쳐서 표시
-        backgroundImage: 'radial-gradient(circle at 32px 32px, #ffbb00 10px, transparent 11px), url("/chocolate.jpg")',
-        backgroundSize: '64px 64px, cover',
+        // 물방울 무늬와 초콜릿 이미지를 겹쳐서 표시 — 색상/간격을 변경함
+        backgroundImage: 'radial-gradient(circle at 24px 24px, #00ffd5 8px, transparent 10px), url("/chocolate.jpg")',
+        backgroundSize: '48px 48px, cover',
         backgroundPosition: '0 0, center',
-        backgroundColor: '#4a3018', // 이미지가 없을 때의 기본 갈색 배경
+        backgroundColor: '#2b1f12',
       }}
     />
   );
