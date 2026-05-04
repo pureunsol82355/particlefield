@@ -109,7 +109,7 @@ export default function ParticleFieldVanilla() {
           border-radius: 5px;
           transition: 0.2s;
           margin-bottom: 8px;
-        ">🔗 프레젠테이션 보기</a>
+        ">🔗 Presentation</a>
         <a href="https://drive.google.com/file/d/1NnMRllVQwBFlKyN09gllSVtle9yk07d9/view?usp=sharing" target="_blank" style="
           display: block;
           text-align: center;
