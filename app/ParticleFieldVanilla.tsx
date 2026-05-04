@@ -91,17 +91,6 @@ export default function ParticleFieldVanilla() {
           width: 100%;
           margin-bottom: 8px;
         ">Click Counter: 0</button>
-        <input type="text" placeholder="Type something..." style="
-          width: 100%;
-          padding: 8px;
-          border: 1px solid #4488ff;
-          border-radius: 5px;
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-          font-size: 13px;
-          box-sizing: border-box;
-          margin-bottom: 12px;
-        ">
         <a href="https://docs.google.com/presentation/d/1iP79ODqjkUfsDrvgMkr0NE0FsPAJYypren1u36DEMYU/edit?usp=sharing" target="_blank" style="
           display: block;
           text-align: center;
