@@ -195,8 +195,8 @@ export default function ParticleFieldVanilla() {
         (gltf) => {
           glbRoot = gltf.scene;
 
-          // 기본 위치/크기 (필요에 따라 조절)
-          glbRoot.position.set(0, -0.6, 0.8);
+          // GLB 기본 위치/크기 (HTML/박스와 겹치지 않도록 옆+뒤로 배치)
+          glbRoot.position.set(2.2, -1.0, -1.8);
           glbRoot.scale.set(1, 1, 1);
 
           scene.add(glbRoot);
@@ -262,12 +262,25 @@ export default function ParticleFieldVanilla() {
           containerRef.current.style.backgroundPosition = `${jiggleX}px ${jiggleY}px, center`;
         }
 
-        // GLB 모델 자동 움직임(부유 + 회전)
+        // GLB 모델 자동 움직임 (2: 원/타원 궤도처럼 빙글빙글 + 넓게)
         const t = performance.now() * 0.001;
         if (glbRoot) {
-          glbRoot.rotation.y = t * 0.6;
-          glbRoot.position.y = -0.6 + Math.sin(t * 1.5) * 0.15;
-          glbRoot.position.x = Math.sin(t * 0.7) * 0.25;
+          // 회전 속도는 살짝 낮춤(너무 어지럽지 않게)
+          glbRoot.rotation.y = t * 0.35;
+
+          // HTML 박스(원점 부근)과 겹치지 않도록 base를 옆+뒤로 두고,
+          // 타원 궤도로 넓게 움직이게 함
+          const baseX = 2.2;
+          const baseY = -1.0;
+          const baseZ = -1.8;
+
+          const orbitX = Math.cos(t * 0.45) * 1.8;
+          const orbitZ = Math.sin(t * 0.45) * 1.2;
+          const bobY = Math.sin(t * 1.3) * 0.35;
+
+          glbRoot.position.x = baseX + orbitX;
+          glbRoot.position.z = baseZ + orbitZ;
+          glbRoot.position.y = baseY + bobY;
         }
 
         // Update controls
